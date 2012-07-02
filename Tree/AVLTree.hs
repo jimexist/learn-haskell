@@ -23,32 +23,34 @@ heightOf branch = h branch
 insert :: (Ord k) => (k, v) -> AVLTree k v -> AVLTree k v
 insert (key, val) Empty = singleton (key, val)
 insert (key, val) (Branch leftNode (k, v) h rightNode) = case compare key k of
-                                                    EQ -> Branch leftNode (key, val) h rightNode -- update
-                                                    GT -> rotateRight . updateHeight $ Branch leftNode (k, v) h (insert (key, val) rightNode)
-                                                    LT -> rotateLeft . updateHeight $ Branch (insert (key, val) rightNode) (k, v) h rightNode
+                                                    -- update
+                                                    EQ -> Branch leftNode (key, val) h rightNode
+                                                    -- insert right
+                                                    GT -> let insertResult = Branch leftNode (k, v) h (insert (key, val) rightNode) in
+                                                            if isBalanced insertResult then
+                                                                updateHeight insertResult
+                                                            else -- rotate
+                                                                case compare key (fst $ pair rightNode) of
+                                                                    GT -> updateHeight . rotateRightSingle $ insertResult
+                                                                    LT -> updateHeight . rotateRightDouble $ insertResult
+                                                    -- insert left
+                                                    LT -> let insertResult = Branch (insert (key, val) leftNode) (k, v) h rightNode in
+                                                            if isBalanced insertResult then
+                                                                updateHeight insertResult
+                                                            else -- rotate
+                                                                case compare key (fst $ pair leftNode) of
+                                                                    LT -> updateHeight . rotateLeftSingle $ insertResult
+                                                                    GT -> updateHeight . rotateLeftDouble $ insertResult
 
-rotateLeft :: AVLTree k v -> AVLTree k v
-rotateLeft (Branch leftNode (k, v) h rightNode) | balanced  = Branch leftNode (k, v) h rightNode
-                                                | otherwise = if isSingle
-                                                                then rotateLeftSingle $ Branch leftNode (k, v) h rightNode
-                                                              else rotateLeftDouble $ Branch leftNode (k, v) h rightNode
-                                                where (balanced, isSingle) = ((heightOf leftNode - heightOf rightNode) < 2, heightOf (left leftNode) > heightOf (right leftNode))
 
 rotateLeftSingle :: AVLTree k v -> AVLTree k v
-rotateLeftSingle (Branch leftNode (k, v) h rightNode) = Branch (left leftNode) (pair leftNode) h (Branch Empty (k, v) (h-1) rightNode)
+rotateLeftSingle (Branch leftNode (k, v) h rightNode) = updateHeight $ Branch (left leftNode) (pair leftNode) h (updateHeight $ Branch Empty (k, v) (h-1) rightNode)
 
 rotateLeftDouble :: AVLTree k v -> AVLTree k v
 rotateLeftDouble (Branch leftNode (k, v) h rightNode) = rotateLeftSingle $ Branch (rotateRightSingle . right $ leftNode) (k, v) h rightNode
 
-rotateRight :: AVLTree k v -> AVLTree k v
-rotateRight (Branch leftNode (k, v) h rightNode) | balanced  = Branch leftNode (k, v) h rightNode
-                                                 | otherwise = if isSingle
-                                                                 then rotateRightSingle $ Branch leftNode (k, v) h rightNode
-                                                               else rotateRightDouble $ Branch leftNode (k, v) h rightNode
-                                                where (balanced, isSingle) = ((heightOf leftNode - heightOf rightNode) > 2, heightOf (left leftNode) < heightOf (right leftNode))
-
 rotateRightSingle :: AVLTree k v -> AVLTree k v
-rotateRightSingle (Branch leftNode (k, v) h rightNode) = Branch (Branch leftNode (k, v) (h-1) Empty) (pair rightNode) h (right rightNode)
+rotateRightSingle (Branch leftNode (k, v) h rightNode) = updateHeight $ Branch (updateHeight $ Branch leftNode (k, v) (h-1) Empty) (pair rightNode) h (right rightNode)
 
 rotateRightDouble :: AVLTree k v -> AVLTree k v
 rotateRightDouble (Branch leftNode (k, v) h rightNode) = rotateRightSingle $ Branch leftNode (k, v) h (rotateLeftSingle . left $ rightNode)
