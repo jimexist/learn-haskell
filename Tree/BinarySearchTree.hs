@@ -49,7 +49,7 @@ postOrder (Branch left (k, v) right) = postOrder left ++ postOrder right ++ show
 
 -- always update
 insert :: (Ord k) => (k, v) -> BinarySearchTree k v -> BinarySearchTree k v
-insert (k, v) Empty = Branch Empty (k, v) Empty
+insert (k, v) Empty = singleton (k, v)
 insert (key, val) (Branch left (k, v) right) = case compare k key of
                                                 GT -> Branch (insert (key, val) left) (k, v) right
                                                 EQ -> Branch left (key, val) right
