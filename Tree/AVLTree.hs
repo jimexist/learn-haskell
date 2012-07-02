@@ -49,7 +49,7 @@ insert (key, val) (Branch leftNode (k, v) h rightNode) = case compare key k of
                     GT -> updateHeight . rotateLeftDouble $ insertResult
 
 delete :: (Ord k, Eq v) => k -> AVLTree k v -> AVLTree k v
-delete key Empty = Empty
+delete _ Empty = Empty
 delete key (Branch leftNode (k, v) h rightNode) = case compare key k of
     GT -> updateHeight $ Branch leftNode (k, v) h (delete key rightNode)
     LT -> updateHeight $ Branch (delete key leftNode) (k, v) h rightNode
@@ -58,9 +58,10 @@ delete key (Branch leftNode (k, v) h rightNode) = case compare key k of
           else let deleteResult = updateHeight $ Branch (delete (fst prev) leftNode) prev h rightNode where prev=fromJust.findMax$leftNode in -- find the previous one
             if isBalanced deleteResult then
                 deleteResult
-            else case compare (heightOf.left.right$deleteResult) (heightOf.right.right$deleteResult) of
+            else case compareHeights . right $ deleteResult of
                 GT -> rotateRightDouble deleteResult
                 LT -> rotateRightSingle deleteResult
+                EQ -> rotateRightSingle deleteResult
             
 
 findMax :: (Ord k, Eq v) => AVLTree k v -> Maybe (k, v)
@@ -72,6 +73,10 @@ findMin :: (Ord k, Eq v) => AVLTree k v -> Maybe (k, v)
 findMin Empty = Nothing
 findMin (Branch leftNode (k, v) _ _) | leftNode == Empty = Just (k, v)
                                      | otherwise = findMin leftNode
+
+compareHeights :: AVLTree k v -> Ordering
+compareHeights Empty = EQ
+compareHeights (Branch leftNode _ _ rightNode) = compare (heightOf leftNode) (heightOf rightNode)
 
 rotateLeftSingle :: AVLTree k v -> AVLTree k v
 rotateLeftSingle (Branch leftNode (k, v) h rightNode) = updateHeight $ Branch (left leftNode) (pair leftNode) h (updateHeight $ Branch Empty (k, v) (h-1) rightNode)
