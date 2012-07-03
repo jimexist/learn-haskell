@@ -1,5 +1,6 @@
 module Tree.BinarySearchTree
 ( BinarySearchTree(..)
+, singleton
 , fringe
 , preOrder
 , inOrder
