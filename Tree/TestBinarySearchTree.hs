@@ -8,6 +8,14 @@ prop_singleton :: (String, String) -> Bool
 prop_singleton (k, v) = 
     delete k (singleton (k, v)) == Empty
 
+prop_insert :: (String, String) -> [(String, String)] -> Bool
+prop_insert p ps =
+    insert p (fromList ps) == fromList (p:ps)
+
+prop_delete :: (String, String) -> [(String, String)] -> Bool
+prop_delete p ps =
+    delete (fst p) (fromList (p:ps)) == fromList ps
+
 prop_inputOrderNonrelevant :: [(String, String)] -> Bool
 prop_inputOrderNonrelevant ps =
     fromList ps == fromList (sortBy (comparing fst) ps)
