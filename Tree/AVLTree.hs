@@ -9,6 +9,7 @@ module Tree.AVLTree
 , findMin
 , isValid
 , fromList
+, toSortedList
     ) where
 
 import Data.Maybe (fromJust)
@@ -20,14 +21,14 @@ data AVLTree k v = Empty | Branch { left :: AVLTree k v
                                   } deriving (Show, Eq)
 
 singleton :: (k, v) -> AVLTree k v
-singleton (k, v) = Branch Empty (k, v) 0 Empty
+singleton p = Branch Empty p 0 Empty
 
 -- wrapped for Empty
 heightOf :: AVLTree k v -> Int
 heightOf Empty = -1
 heightOf branch = h branch
 
-insert :: (Ord k, Eq v, Show k, Show v) => (k, v) -> AVLTree k v -> AVLTree k v
+insert :: (Ord k, Eq v) => (k, v) -> AVLTree k v -> AVLTree k v
 insert (key, val) Empty = singleton (key, val)
 insert (key, val) (Branch leftNode (k, v) h rightNode) = case compare key k of
     -- update
@@ -53,9 +54,9 @@ insert (key, val) (Branch leftNode (k, v) h rightNode) = case compare key k of
 
 delete :: (Ord k, Eq v) => k -> AVLTree k v -> AVLTree k v
 delete _ Empty = Empty
-delete key (Branch leftNode (k, v) h rightNode) = case compare key k of
-    GT ->   updateHeight $ Branch leftNode (k, v) h (delete key rightNode)
-    LT ->   updateHeight $ Branch (delete key leftNode) (k, v) h rightNode
+delete key (Branch leftNode p@(k, v) h rightNode) = case compare key k of
+    GT ->   updateHeight $ Branch leftNode p h (delete key rightNode)
+    LT ->   updateHeight $ Branch (delete key leftNode) p h rightNode
     EQ ->   if leftNode == Empty
                 then rightNode -- both Empty then rightNode yields Empty
             else if rightNode == Empty 
@@ -64,10 +65,9 @@ delete key (Branch leftNode (k, v) h rightNode) = case compare key k of
                 let deleteResult = updateHeight $ Branch (delete (fst prev) leftNode) prev h rightNode where prev=fromJust.findMax$leftNode in -- find the previous one
                 if isBalanced deleteResult then
                     deleteResult
-                else case compareHeights . right $ deleteResult of
+                else case compareHeights.right$deleteResult of
                     GT -> rotateRightDouble deleteResult
-                    LT -> rotateRightSingle deleteResult
-                    EQ -> rotateRightSingle deleteResult -- either single or double works
+                    _ -> rotateRightSingle deleteResult -- either single or double works
 
 count :: AVLTree k v -> Int
 count Empty = 0
@@ -122,7 +122,7 @@ rotateRightDouble (Branch leftNode p _ rightNode) =
 
 updateHeight :: AVLTree k v -> AVLTree k v
 updateHeight Empty = Empty
-updateHeight (Branch leftNode (k, v) _ rightNode) = Branch leftNode (k, v) h rightNode
+updateHeight (Branch leftNode p _ rightNode) = Branch leftNode p h rightNode
     where h = 1 + max (heightOf leftNode) (heightOf rightNode)
 
 isBalanced :: AVLTree k v -> Bool
@@ -131,11 +131,15 @@ isBalanced (Branch leftNode _ _ rightNode) = abs (heightOf leftNode - heightOf r
 
 isValid :: AVLTree k v -> Bool
 isValid Empty = True
-isValid (Branch leftNode p h rightNode) = 
-    isBalanced (Branch leftNode p h rightNode) &&
+isValid branch@(Branch leftNode _ h rightNode) = 
+    isBalanced branch &&
     h == 1 + max (heightOf leftNode) (heightOf rightNode) &&
     isValid leftNode && 
     isValid rightNode
 
-fromList :: (Ord k, Eq v, Show k, Show v) => [(k, v)] -> AVLTree k v
+fromList :: (Ord k, Eq v) => [(k, v)] -> AVLTree k v
 fromList = foldr insert Empty 
+
+toSortedList :: (Ord k, Eq v) => AVLTree k v -> [(k, v)]
+toSortedList Empty = []
+toSortedList (Branch leftNode p _ rightNode) = toSortedList leftNode ++ [p] ++ toSortedList rightNode
