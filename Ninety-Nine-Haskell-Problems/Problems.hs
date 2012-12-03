@@ -48,6 +48,26 @@ myPack = reverse . fst . myPack' []
 
 myEncode s = map (\e -> (length e, head e)) $ myPack s
 
+data Encoded a = Single a | Multiple Int a deriving (Show)
+
+myEncodeModified s = 
+    map lambda $ myPack s
+    where lambda = \e -> if (length e == 1) then Single (head e) else Multiple (length e) (head e)
+
+myDecode [] = []
+myDecode ((Single a):xs) = a:(myDecode xs)
+myDecode ((Multiple n a):xs) = (multiple n a)++(myDecode xs)
+
+multiple 0 _ = []
+multiple n a = a:(multiple (n-1) a)
+
+myDupli [] = []
+myDupli (x:xs) = x:x:(myDupli xs)
+
+myRepli [] _ = []
+myRepli _ 0 = []
+myRepli (x:xs) n = (multiple n x) ++ (myRepli xs n)
+
 -- tests
 
 testLast s =
