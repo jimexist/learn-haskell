@@ -68,6 +68,33 @@ myRepli [] _ = []
 myRepli _ 0 = []
 myRepli (x:xs) n = (multiple n x) ++ (myRepli xs n)
 
+myDrop' _ [] _ = []
+myDrop' acc (x:xs) counter =
+    if (acc `mod` counter == 0)
+    then rest
+    else x:rest
+    where rest = myDrop' (acc+1) xs counter
+
+myDrop s counter = myDrop' 1 s counter
+
+mySplitAt' lhs rhs 0 = (reverse lhs, rhs)
+mySplitAt' lhs (x:xs) n = mySplitAt' (x:lhs) xs (n-1)
+
+mySplitAt s n = mySplitAt' [] s n
+
+mySlice s begin end = 
+    snd $ mySplitAt (fst $ mySplitAt s end) (begin-1)
+
+myRotate s 0 = s
+myRotate s n | n > 0 = flipJoin $ mySplitAt s n
+    where flipJoin (a, b) = b ++ a
+myRotate s n = myRotate s (n + length s)
+
+myRemoveAt s n | n > length s || n <=0 = s
+myRemoveAt (_:xs) 1 = xs
+myRemoveAt (x:xs) n = x:rest
+    where rest = myRemoveAt xs (n-1)
+
 -- tests
 
 testLast s =
