@@ -92,8 +92,15 @@ myRotate s n = myRotate s (n + length s)
 
 myRemoveAt s n | n > length s || n <=0 = s
 myRemoveAt (_:xs) 1 = xs
-myRemoveAt (x:xs) n = x:rest
-    where rest = myRemoveAt xs (n-1)
+myRemoveAt (x:xs) n = x : myRemoveAt xs (n-1)
+
+myInsertAt _ l n | n <= 0 = l
+myInsertAt e l 1 = e:l
+myInsertAt e (x:xs) n = x : myInsertAt e xs (n-1)
+
+myRange l r | l < r = l : myRange (l+1) r
+myRange l r | l == r = r : [] -- including
+myRange l r | l > r = l : myRange (l-1) r
 
 -- tests
 
