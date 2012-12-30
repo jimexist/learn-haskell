@@ -1,4 +1,5 @@
 import Control.Monad (liftM2)
+import Data.Char (digitToInt)
 
 safeHead :: [a] -> Maybe a
 safeHead []    = Nothing
@@ -18,4 +19,23 @@ safeInit [] = Nothing
 safeInit (x:[]) = Just [x]
 safeInit (x:xs) = liftM2 (:) (Just x) (safeInit xs)
 
--- splitWith :: (a ->Bool) ->[a] ->[[a]]
+splitWith :: (a ->Bool) ->[a] ->[[a]]
+splitWith f s = case dropWhile (not . f) s of
+                        []  -> []
+                        s'  -> w : splitWith f s''
+                               where (w, s'') = break (not . f) s'
+
+transpose :: [[a]] -> [[a]]
+transpose [] = []
+transpose ([] : xss) = transpose xss
+transpose ((x:xs) : xss) = (x:[h|(h:_) <-xss]) : transpose(xs:[t|(_:t)<-xss])
+
+transposeFile :: [Char] ->[Char]
+transposeFile = unlines . transpose . lines
+
+asInt_fold :: String ->Int
+asInt_fold ('-':cs) = (- (asInt_fold' cs))
+asInt_fold cs = asInt_fold' cs
+
+asInt_fold' = foldl (\acc ele ->10*acc + (digitToInt ele)) 0
+
