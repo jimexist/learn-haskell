@@ -1,4 +1,4 @@
-import Data.List (groupBy, (\\), nub, partition)
+import Data.List (groupBy, (\\), nub, partition, delete)
 import Debug.Trace (trace)
 
 type Node = Char
@@ -6,6 +6,7 @@ type Path = [Node]
 data Edge = Edge {startNode :: Node, endNode :: Node} deriving (Show, Eq, Read)
 data Graph = Graph {nodes :: [Node], edges :: [Edge]} deriving (Show, Eq, Read)
 data AdjacencyList = AdjacencyList [(Node, [Node])] deriving (Show, Eq, Read)
+data Tree a = Leaf a | Branch {leftChild :: Tree a, element :: a, rightChild :: Tree a} deriving (Show, Eq, Read)
 
 startWith :: Edge -> Node -> Bool
 startWith (Edge n1 _) node = n1 == node
@@ -26,7 +27,7 @@ acyclicPaths' edges paths = case (newPaths \\ paths) of
     otherwise -> acyclicPaths' edges $ nub (newPaths ++ paths)
     where newPaths = [(endNode edge):path | edge <- edges,
                                             path <- paths,
-                                            (not $ (endNode edge) `elem` path) &&
+                                            ((endNode edge) `notElem` path) &&
                                             (edge `startWith` (head path))]
 
 cycles :: Node -> [Edge] -> [Path]
@@ -40,6 +41,23 @@ cycles' edges paths allCycles = cycles' edges newPaths newAllCycles
                     [(endNode edge):path | path <- paths, edge <- edges, edge `startWith` (head path)]
           newAllCycles = newCycles ++ allCycles
 
+isConnected :: Graph -> Bool
+isConnected (Graph nodes edges) = all isConnected' nodes
+    where isConnected' node = node `elem` edgeNodes
+          edgeNodes = (map startNode edges) ++ (map endNode edges)
+
+-- directed and undirected graphs have different defitions of cycle
+hasCycle :: Graph -> Bool
+hasCycle (Graph nodes edges) = any isConnected [Graph nodes (delete edge edges) | edge <- edges]
+
+isTree :: Graph -> Bool
+isTree graph = (isConnected graph) && (not $ hasCycle graph)
+
+spanningTrees :: Graph -> [Graph]
+spanningTrees (Graph nodes edges) = undefined
+
+spanningTrees' :: Graph -> [Graph]
+spanningTrees' (Graph nodes edges) = undefined
 
 main = do
     putStrLn . show . graphToList $ Graph ['r','s','t','u','v'] [Edge 's' 'r', Edge 's' 'u', Edge 'u' 'r', Edge 'u' 's']
