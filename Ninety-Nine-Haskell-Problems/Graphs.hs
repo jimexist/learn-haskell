@@ -23,12 +23,7 @@ toGraph es = Graph $ map extract $ groupByFst es
              where extract es = ((fst $ head es), (map snd es))
 
 edges :: Node -> Graph -> [Node]
-edges n (Graph list) = edges' n list
-
-edges' :: Node -> [(Node, [Node])] -> [Node]
-edges' _ [] = []
-edges' n ((x, result):_) | n == x = result
-edges' n (_:rest) = edges' n rest
+edges n (Graph list) = snd . head $ dropWhile (\x -> (fst x) /= n) list
 
 -- all paths from a to b
 paths :: Node -> Node -> Graph -> [Path]
@@ -39,12 +34,7 @@ neighbors _ [] = []
 neighbors g paths = [ n:path | path <- paths, n <- edges (head path) g, n `notElem` path]
 
 allNeighbors :: Graph -> Node -> [Path]
-allNeighbors g a = foldl1 (++) $ reverse $ grow g [[[a]]]
-
-grow :: Graph -> [[Path]] -> [[Path]]
-grow g list@(hd:_) = case (neighbors g hd) of
-                       [] -> list
-                       result -> grow g (result:list)
+allNeighbors g a = foldl1 (++) $ takeWhile (not.null) $ scanl (\x f -> f x) [[a]] $ repeat (neighbors g)
 
 -- all paths that cycle
 cycle :: Node -> Graph -> [Path]
