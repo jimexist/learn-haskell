@@ -1,72 +1,52 @@
-import Data.List (groupBy, (\\), union, partition, delete)
+import Data.List
+import Data.Ord
 import Debug.Trace (trace)
 
-type Node = Char
+type Node = Integer
+
 type Path = [Node]
-data Edge = Edge {startNode :: Node, endNode :: Node} deriving (Show, Eq, Read)
-data Graph = Graph {nodes :: [Node], edges :: [Edge]} deriving (Show, Eq, Read)
-data AdjacencyList = AdjacencyList [(Node, [Node])] deriving (Show, Eq, Read)
-data Tree a = Leaf a | Branch {leftChild :: Tree a, element :: a, rightChild :: Tree a} deriving (Show, Eq, Read)
 
-startWith :: Edge -> Node -> Bool
-startWith (Edge n1 _) node = n1 == node
+type Edge = (Node, Node)
 
-endWith :: Edge -> Node -> Bool
-endWith (Edge _ n2) node = n2 == node
+-- ajacency list
+data Graph = Graph [(Node, [Node])] deriving (Show, Eq, Read)
 
-graphToList :: Graph -> AdjacencyList
-graphToList (Graph nodes edges) =
-    AdjacencyList [(node, map endNode $ filter (\edge -> edge `startWith` node) edges) | node <- nodes]
+data Tree a = Leaf a | Branch {leftChild :: Tree a,
+                               element :: a, 
+                               rightChild :: Tree a} deriving (Show, Eq, Read)
 
-acyclicPaths :: Node -> Node -> [Edge] -> [Path]
-acyclicPaths a b edges = map reverse $ filter (\path -> (head path) == b) $ acyclicPaths' edges [[a]]
+groupByFst = groupBy (mapFst (==)) . sortBy (comparing fst)
+             where mapFst f x y = f (fst x) (fst y)
 
-acyclicPaths' :: [Edge] -> [Path] -> [Path]
-acyclicPaths' edges paths = case (newPaths \\ paths) of
-    [] -> paths
-    otherwise -> acyclicPaths' edges (paths `union` newPaths)
-    where newPaths = [(endNode edge):path | edge <- edges,
-                                            path <- paths,
-                                            ((endNode edge) `notElem` path) &&
-                                            (edge `startWith` (head path))]
+toGraph :: [Edge] -> Graph
+toGraph es = Graph $ map extract $ groupByFst es
+             where extract es = ((fst $ head es), (map snd es))
 
-cycles :: Node -> [Edge] -> [Path]
-cycles n edges = map reverse $ filter (\path -> head path == n) $ cycles' edges [[n]] []
+edges :: Node -> Graph -> [Node]
+edges n (Graph list) = edges' n list
 
-cycles' :: [Edge] -> [Path] -> [Path] -> [Path]
-cycles' _ [] result = result
-cycles' edges paths allCycles = cycles' edges newPaths (allCycles ++ newCycles)
-    where (newCycles, newPaths) = partition (\path -> (head path) `elem` (tail path))
-            [(endNode edge):path | path <- paths, edge <- edges, edge `startWith` (head path)]
+edges' :: Node -> [(Node, [Node])] -> [Node]
+edges' _ [] = []
+edges' n ((x, result):_) | n == x = result
+edges' n (_:rest) = edges' n rest
 
-isConnected :: Graph -> Bool
-isConnected (Graph nodes edges) = all isConnected' nodes
-    where isConnected' node = node `elem` edgeNodes
-          edgeNodes = (map startNode edges) `union` (map endNode edges)
+-- all paths from a to b
+paths :: Node -> Node -> Graph -> [Path]
+paths a b g = map reverse $ filter (\x -> b == head x) $ allNeighbors g a
 
--- directed and undirected graphs have different defitions of cycle
-hasCycle :: Graph -> Bool
-hasCycle (Graph nodes edges) = any isConnected [Graph nodes (delete edge edges) | edge <- edges]
+neighbors :: Graph -> [Path] -> [Path]
+neighbors _ [] = []
+neighbors g paths = [ n:path | path <- paths, n <- edges (head path) g, n `notElem` path]
 
-isTree :: Graph -> Bool
-isTree graph = (isConnected graph) && (not $ hasCycle graph)
+allNeighbors :: Graph -> Node -> [Path]
+allNeighbors g a = foldl1 (++) $ reverse $ grow g [[[a]]]
 
-spanningTrees :: Graph -> [Graph]
-spanningTrees (Graph nodes edges) = undefined
+grow :: Graph -> [[Path]] -> [[Path]]
+grow g list@(hd:_) = case (neighbors g hd) of
+                       [] -> list
+                       result -> grow g (result:list)
 
-spanningTrees' :: Graph -> [Graph]
-spanningTrees' (Graph nodes edges) = undefined
-
-depthFirstSearch :: Graph -> Node -> (Node -> Bool) -> Maybe Node
-depthFirstSearch graph root predicate = undefined
-
-breadthFirstSearch :: Graph -> Node -> (Node -> Bool) -> Maybe Node
-breadthFirstSearch graph root predicate = bfs (edges graph) [root] predicate
-
-bfs :: [Edge] -> [Node] -> (Node -> Bool) -> Maybe Node
-bfs _ [] _ = Nothing
-bfs edges (n:ns) predicate = if (predicate n) then Just n else bfs edges (ns `union` newNodes) predicate
-    where newNodes = [endNode edge | edge <- edges, edge `startWith` n]
-
-main = do
-    putStrLn . show . graphToList $ Graph ['r','s','t','u','v'] [Edge 's' 'r', Edge 's' 'u', Edge 'u' 'r', Edge 'u' 's']
+-- all paths that cycle
+cycle :: Node -> Graph -> [Path]
+cycle a g = map (reverse . ((:) a)) $ filter connects $ allNeighbors g a
+            where connects x = a `elem` (edges (head x) g)
